@@ -1,6 +1,5 @@
 import streamlit as st
 from datetime import datetime
-from utils.data_manager import add_notification
 
 st.set_page_config(layout="wide")
 
@@ -13,6 +12,9 @@ if "leaderboard" not in st.session_state:
 
 if "requests" not in st.session_state:
     st.session_state.requests = []
+
+if "volunteer_notifications" not in st.session_state:
+    st.session_state.volunteer_notifications = []
 
 # ================= NAVBAR =================
 st.markdown(f"""
@@ -55,20 +57,21 @@ st.markdown(f"""
 
 st.markdown(f"### 👋 Welcome, {st.session_state.get('user')}!")
 
-# ================= LOGOUT =================
-col1, col2, col3 = st.columns([8, 1, 1])
+# ================= LOGOUT (FIXED) =================
+col1, col2, col3 = st.columns([8,1,1])
+
 with col3:
-    if st.button("🚪 Logout"):
+    if st.button("🚪 Logout", key="logout_nav_final"):
         st.session_state.user = None
         st.session_state.role = None
-        st.switch_page("app.py")
+        st.rerun()   # ✅ FIXED (removed switch_page error)
 
 # ================= SECURITY =================
 if st.session_state.get("role") != "Restaurant":
     st.error("❌ Only Restaurant users allowed")
     st.stop()
 
-# ================= TITLE =================
+# ================= UI =================
 st.markdown("""
 <style>
 .title {
@@ -83,6 +86,9 @@ st.markdown("""
     border-radius:15px;
     margin-bottom:10px;
 }
+.pending {color:orange;}
+.accepted {color:#4CAF50;}
+.completed {color:cyan;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -97,7 +103,7 @@ with st.form("donate_form"):
     with col1:
         hotel = st.text_input("🏨 Hotel Name")
         food = st.text_input("🍲 Food Item")
-        meals = st.number_input("🍽 Meals", min_value=1)
+        qty = st.number_input("🍽 Meals", min_value=1)
 
     with col2:
         serving = st.number_input("👥 Serving per Meal", min_value=1)
@@ -122,7 +128,7 @@ if submit:
             "Hotel": hotel,
             "User": st.session_state.get("user"),
             "Food": food,
-            "Meals": meals,
+            "Qty": qty,
             "Serving": serving,
             "Expiry": expiry,
             "Urgency": urgency,
@@ -135,16 +141,9 @@ if submit:
 
         st.session_state.donations.append(donation)
 
-        try:
-            add_notification(
-                f"Food ready for pickup at {hotel}, {address} ({meals} meals)",
-                "volunteer"
-            )
-        except:
-            pass
-
+        # leaderboard update
         st.session_state.leaderboard[hotel] = \
-            st.session_state.leaderboard.get(hotel, 0) + int(meals)
+            st.session_state.leaderboard.get(hotel, 0) + int(qty)
 
         st.success("✅ Donation submitted!")
 
@@ -156,6 +155,7 @@ filter_status = st.selectbox(
     ["All", "Pending", "Accepted", "Completed"]
 )
 
+# ================= DISPLAY =================
 found = False
 
 for d in reversed(st.session_state.donations):
@@ -166,19 +166,20 @@ for d in reversed(st.session_state.donations):
             continue
 
         found = True
+        status_class = d.get("Status", "").lower()
 
         st.markdown(f"""
         <div class="card">
         🏨 <b>{d.get('Hotel')}</b><br>
         🍱 {d.get('Food')}<br>
-        🍽 Meals: {d.get('Meals')}<br>
+        🍽 Meals: {d.get('Qty')}<br>
         👥 Serving: {d.get('Serving')}<br>
         ⏱ Expiry: {d.get('Expiry')} hrs<br>
         ⚡ Urgency: {d.get('Urgency')}<br>
         📍 {d.get('Address')}<br>
         📞 {d.get('Contact')}<br><br>
         🕒 {d.get('Time')}<br>
-        📌 Status: {d.get('Status')}<br>
+        📌 Status: <span class="{status_class}">{d.get('Status')}</span><br>
         🤝 Accepted By: {d.get('Accepted_By')}
         </div>
         """, unsafe_allow_html=True)
