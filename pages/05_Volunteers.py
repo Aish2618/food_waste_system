@@ -16,7 +16,7 @@ if "volunteers" not in st.session_state:
     st.session_state.volunteers = []
 
 # =========================================================
-# 🔐 FIXED SECURITY (ROLE ISSUE SOLVED)
+# 🔐 SECURITY
 # =========================================================
 role = st.session_state.get("role")
 
@@ -31,12 +31,13 @@ if role.strip().lower() != "volunteer":
 # ---------------- HEADER ----------------
 st.title("🤝 Volunteer Dashboard")
 
-# ---------------- LOGOUT ----------------
+# ---------------- LOGOUT (FIXED) ----------------
 col1, col2 = st.columns([8,1])
+
 with col2:
     if st.button("🚪 Logout"):
         st.session_state.clear()
-        st.switch_page("app.py")
+        st.rerun()   # ✅ FIXED
 
 # =========================================================
 # 📝 VOLUNTEER REGISTRATION
@@ -47,7 +48,6 @@ with st.form("volunteer_form"):
     name = st.text_input("👤 Name")
     phone = st.text_input("📞 Phone")
     area = st.text_input("📍 Area")
-
     submit = st.form_submit_button("Register")
 
 if submit:
@@ -60,7 +60,8 @@ if submit:
         })
 
         st.session_state.user = name
-        st.session_state.role = "Volunteer"   # ✅ ENSURE ROLE SET CORRECTLY
+        st.session_state.role = "Volunteer"
+
         st.success("✅ Registered successfully!")
     else:
         st.error("⚠️ Please fill all fields")
@@ -75,7 +76,6 @@ components.html("""
 <html>
 <body>
 <p id="location">Fetching location...</p>
-
 <script>
 navigator.geolocation.getCurrentPosition(
     function(position) {
@@ -120,7 +120,7 @@ view_state = pdk.ViewState(
 st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state))
 
 # =========================================================
-# 🔔 NOTIFICATIONS (FIXED MAP LINK)
+# 🔔 NOTIFICATIONS
 # =========================================================
 st.subheader("🔔 Pickup Notifications")
 
@@ -142,7 +142,6 @@ for r in st.session_state.requests:
 
 if notes:
     for n in reversed(notes):
-
         restaurant = n.get("restaurant", "Food Ready")
         location = n.get("location")
         meals = n.get("meals", 0)
@@ -160,7 +159,6 @@ if notes:
 🍽 Meals: {meals}  
 {map_link}
         """)
-
 else:
     st.info("No pickup notifications yet")
 
@@ -178,17 +176,15 @@ for i, r in enumerate(st.session_state.requests):
         task_found = True
 
         st.write(f"""
-        📍 Location: {r.get('Location')}  
-        🍽 Meals: {r.get('Meals')}  
-        🏨 Restaurant: {r.get('Restaurant_Name')}
+📍 Location: {r.get('Location')}  
+🍽 Meals: {r.get('Meals')}  
+🏨 Restaurant: {r.get('Restaurant_Name')}
         """)
 
         if st.button(f"🚚 Deliver Order {i}"):
-
             st.session_state.requests[i]["Delivered"] = "Yes"
             st.session_state.requests[i]["Status"] = "Completed"
             st.session_state.requests[i]["Volunteer_Name"] = st.session_state.get("user")
-
             st.success("✅ Delivered successfully!")
             st.rerun()
 
@@ -203,7 +199,7 @@ st.subheader("📦 Completed Deliveries")
 for r in st.session_state.requests:
     if r.get("Delivered") == "Yes":
         st.success(f"""
-        ✅ Delivered by: {r.get('Volunteer_Name', 'Unknown')}  
-        📍 {r.get('Location')}  
-        🍽 {r.get('Meals')} meals
+✅ Delivered by: {r.get('Volunteer_Name', 'Unknown')}  
+📍 {r.get('Location')}  
+🍽 {r.get('Meals')} meals
         """)
