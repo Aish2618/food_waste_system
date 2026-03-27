@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.data_manager import add_notification   # ✅ ADDED
+from utils.data_manager import add_notification
 
 st.set_page_config(layout="wide")
 
@@ -51,13 +51,14 @@ st.markdown(f"""
 
 st.markdown(f"### 👋 Welcome, {st.session_state.get('user')}!")
 
-# ================= LOGOUT =================
+# ================= LOGOUT (FIXED) =================
 col1, col2, col3 = st.columns([8,1,1])
+
 with col3:
     if st.button("🚪 Logout", key="logout_ngo"):
         st.session_state.user = None
         st.session_state.role = None
-        st.switch_page("app.py")
+        st.rerun()   # ✅ FIXED
 
 # ================= SECURITY =================
 if st.session_state.get("role") != "NGO":
@@ -118,7 +119,6 @@ st.subheader("🚨 Emergency Request")
 with st.form("ngo_emergency"):
     location = st.text_input("📍 Location")
     meals = st.number_input("🍽 Meals Needed", min_value=1)
-
     submit = st.form_submit_button("Send to Restaurant")
 
 if submit:
@@ -131,7 +131,6 @@ if submit:
         "Delivered": "No"
     })
 
-    # ✅ NOTIFICATION ADDED
     add_notification(
         f"🚨 Emergency Request: {meals} meals needed at {location}",
         "restaurant"
@@ -143,7 +142,6 @@ if submit:
 st.subheader("📋 Emergency Tracking")
 
 for r in st.session_state.requests:
-
     st.write(f"""
     📍 {r['Location']}  
     🍽 {r['Meals']} meals  
@@ -161,6 +159,7 @@ st.subheader("📊 Summary")
 c1, c2 = st.columns(2)
 
 c1.metric("Total Donations", len(st.session_state.donations))
+
 c2.metric(
     "Completed",
     len([d for d in st.session_state.donations if d.get("Status") == "Completed"])
