@@ -40,12 +40,13 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ================= LOGOUT =================
+# ================= LOGOUT (FIXED) =================
 col1, col2, col3 = st.columns([8,1,1])
+
 with col3:
     if st.button("🚪 Logout"):
         st.session_state.clear()
-        st.switch_page("app.py")
+        st.rerun()   # ✅ FIXED
 
 # ================= SESSION =================
 if "requests" not in st.session_state:
@@ -81,6 +82,7 @@ if st.session_state.get("role") == "NGO":
             "Rating": None,
             "Time": datetime.now().strftime("%H:%M")
         })
+
         st.success("✅ Sent to Restaurant!")
 
 # =========================================================
@@ -99,12 +101,10 @@ elif st.session_state.get("role") == "Restaurant":
             col1, col2 = st.columns(2)
 
             if col1.button(f"✅ Accept {i}"):
-
                 st.session_state.requests[i]["Restaurant_Response"] = "Accepted"
                 st.session_state.requests[i]["Status"] = "Food Ready"
                 st.session_state.requests[i]["Restaurant_Name"] = st.session_state.get("user")
 
-                # 🔔 Notification
                 st.session_state.volunteer_notifications.append({
                     "message": f"🍱 Pickup from {st.session_state.get('user')} ({r['Meals']} meals) at {r['Location']}"
                 })
@@ -113,7 +113,6 @@ elif st.session_state.get("role") == "Restaurant":
                 st.rerun()
 
             if col2.button(f"❌ Reject {i}"):
-
                 st.session_state.requests[i]["Restaurant_Response"] = "Rejected"
                 st.session_state.requests[i]["Status"] = "Rejected"
                 st.rerun()
@@ -127,6 +126,7 @@ elif st.session_state.get("role") == "Volunteer":
 
     # 🔔 Notifications
     st.subheader("🔔 Notifications")
+
     if st.session_state.volunteer_notifications:
         for n in reversed(st.session_state.volunteer_notifications):
             st.info(n["message"])
@@ -147,19 +147,15 @@ elif st.session_state.get("role") == "Volunteer":
 👤 Assigned: {r.get('Volunteer_Assigned')}
 """)
 
-            # ✅ ACCEPT TASK FIRST
             if r.get("Volunteer_Assigned") == "Not Assigned":
                 if st.button(f"🙋 Accept Task {i}"):
                     st.session_state.requests[i]["Volunteer_Assigned"] = st.session_state.get("user")
                     st.rerun()
 
-            # 🚚 DELIVERY
             if r.get("Volunteer_Assigned") == st.session_state.get("user"):
                 if st.button(f"🚚 Pick Up & Deliver {i}"):
-
                     st.session_state.requests[i]["Delivered"] = "Yes"
                     st.session_state.requests[i]["Status"] = "Completed"
-
                     st.success("🎉 Delivered Successfully!")
                     st.rerun()
 
