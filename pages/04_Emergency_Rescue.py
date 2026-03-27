@@ -6,38 +6,29 @@ st.set_page_config(layout="wide")
 # ================= NAVBAR =================
 st.markdown(f"""
 <style>
-
-/* Sticky Navbar */
 .navbar {{
     position: sticky;
     top: 0;
     z-index: 999;
     display: flex;
     justify-content: space-between;
-    align-items: center;
     padding: 12px 25px;
     background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(10px);
     border-radius: 10px;
     margin-bottom: 20px;
 }}
-
 .nav-left {{
     font-size: 22px;
     font-weight: bold;
     color: #4CAF50;
 }}
-
 .nav-right {{
-    font-size: 14px;
     color: white;
 }}
-
 .page-name {{
     color: #ffa726;
     font-weight: bold;
 }}
-
 </style>
 
 <div class="navbar">
@@ -49,34 +40,27 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ================= WELCOME =================
-st.markdown(f"### 👋 Welcome, {st.session_state.get('user')}!")
-
 # ================= LOGOUT =================
 col1, col2, col3 = st.columns([8,1,1])
 with col3:
     if st.button("🚪 Logout"):
-        st.session_state.user = None
-        st.session_state.role = None
-        st.switch_page("App.py")   # ✅ FIXED
+        st.session_state.clear()
+        st.switch_page("app.py")
 
 # ================= SESSION =================
 if "requests" not in st.session_state:
     st.session_state.requests = []
 
-# Default role only if not set
-if "role" not in st.session_state:
-    st.session_state.role = "NGO"
-
-st.sidebar.write(f"👤 Role: {st.session_state.role}")
+if "volunteer_notifications" not in st.session_state:
+    st.session_state.volunteer_notifications = []
 
 # ================= TITLE =================
 st.title("🚨 Emergency Rescue System")
 
 # =========================================================
-# 🏥 NGO → SEND REQUEST
+# 🏥 NGO
 # =========================================================
-if st.session_state.role == "NGO":
+if st.session_state.get("role") == "NGO":
 
     st.subheader("📢 Send Emergency Request")
 
@@ -91,7 +75,10 @@ if st.session_state.role == "NGO":
             "Meals": meals,
             "Status": "Waiting for Restaurant",
             "Restaurant_Response": "Pending",
+            "Restaurant_Name": "Not Assigned",
+            "Volunteer_Assigned": "Not Assigned",
             "Delivered": "No",
+            "Rating": None,
             "Time": datetime.now().strftime("%H:%M")
         })
         st.success("✅ Sent to Restaurant!")
@@ -99,7 +86,7 @@ if st.session_state.role == "NGO":
 # =========================================================
 # 🍱 RESTAURANT
 # =========================================================
-elif st.session_state.role == "Restaurant":
+elif st.session_state.get("role") == "Restaurant":
 
     st.subheader("🍱 Restaurant Panel")
 
@@ -112,11 +99,21 @@ elif st.session_state.role == "Restaurant":
             col1, col2 = st.columns(2)
 
             if col1.button(f"✅ Accept {i}"):
+
                 st.session_state.requests[i]["Restaurant_Response"] = "Accepted"
-                st.session_state.requests[i]["Status"] = "Food Preparing"
+                st.session_state.requests[i]["Status"] = "Food Ready"
+                st.session_state.requests[i]["Restaurant_Name"] = st.session_state.get("user")
+
+                # 🔔 Notification
+                st.session_state.volunteer_notifications.append({
+                    "message": f"🍱 Pickup from {st.session_state.get('user')} ({r['Meals']} meals) at {r['Location']}"
+                })
+
+                st.success("✅ Accepted & Notified Volunteers")
                 st.rerun()
 
             if col2.button(f"❌ Reject {i}"):
+
                 st.session_state.requests[i]["Restaurant_Response"] = "Rejected"
                 st.session_state.requests[i]["Status"] = "Rejected"
                 st.rerun()
@@ -124,24 +121,69 @@ elif st.session_state.role == "Restaurant":
 # =========================================================
 # 🚚 VOLUNTEER
 # =========================================================
-elif st.session_state.role == "Volunteer":
+elif st.session_state.get("role") == "Volunteer":
 
     st.subheader("🚚 Volunteer Panel")
+
+    # 🔔 Notifications
+    st.subheader("🔔 Notifications")
+    if st.session_state.volunteer_notifications:
+        for n in reversed(st.session_state.volunteer_notifications):
+            st.info(n["message"])
+    else:
+        st.info("No notifications")
+
+    # 📦 Tasks
+    st.subheader("📦 Pickup Tasks")
 
     for i, r in enumerate(st.session_state.requests):
 
         if r["Restaurant_Response"] == "Accepted" and r["Delivered"] == "No":
 
-            st.write(f"📍 {r['Location']} | 🍽 {r['Meals']} meals")
+            st.write(f"""
+📍 Location: {r['Location']}  
+🍽 Meals: {r['Meals']}  
+🏨 Hotel: {r.get('Restaurant_Name')}  
+👤 Assigned: {r.get('Volunteer_Assigned')}
+""")
 
-            if st.button(f"🚚 Deliver {i}"):
-                st.session_state.requests[i]["Delivered"] = "Yes"
-                st.session_state.requests[i]["Status"] = "Completed"
-                st.success("🎉 Delivery Completed!")
-                st.rerun()
+            # ✅ ACCEPT TASK FIRST
+            if r.get("Volunteer_Assigned") == "Not Assigned":
+                if st.button(f"🙋 Accept Task {i}"):
+                    st.session_state.requests[i]["Volunteer_Assigned"] = st.session_state.get("user")
+                    st.rerun()
+
+            # 🚚 DELIVERY
+            if r.get("Volunteer_Assigned") == st.session_state.get("user"):
+                if st.button(f"🚚 Pick Up & Deliver {i}"):
+
+                    st.session_state.requests[i]["Delivered"] = "Yes"
+                    st.session_state.requests[i]["Status"] = "Completed"
+
+                    st.success("🎉 Delivered Successfully!")
+                    st.rerun()
 
 # =========================================================
-# 📊 REQUEST STATUS (🔥 BEAUTIFUL + FIXED)
+# ⭐ RATING SYSTEM
+# =========================================================
+st.markdown("---")
+st.subheader("⭐ Rate Deliveries")
+
+for i, r in enumerate(st.session_state.requests):
+
+    if r.get("Delivered") == "Yes" and r.get("Rating") is None:
+
+        st.write(f"📍 {r['Location']} | 👤 {r.get('Volunteer_Assigned')}")
+
+        rating = st.slider(f"Rate Delivery {i}", 1, 5)
+
+        if st.button(f"Submit Rating {i}"):
+            st.session_state.requests[i]["Rating"] = rating
+            st.success("⭐ Rating Submitted!")
+            st.rerun()
+
+# =========================================================
+# 📊 STATUS
 # =========================================================
 st.markdown("---")
 st.subheader("📋 Request Status")
@@ -149,62 +191,19 @@ st.subheader("📋 Request Status")
 for r in st.session_state.requests:
 
     if r["Delivered"] == "Yes":
-        st.markdown(f"""
-        <div style="
-            background: rgba(76,175,80,0.15);
-            padding:15px;
-            border-left:6px solid #4CAF50;
-            border-radius:10px;
-            margin-bottom:10px;">
-            
-            <b>✅ Delivery Completed</b><br>
-            📍 {r['Location']}<br>
-            🍽 Meals: {r['Meals']}<br>
-            ⏰⏰ {r.get('Time', 'Not Available')} 
-        </div>
-        """, unsafe_allow_html=True)
+        st.success(f"""
+✅ Completed  
+📍 {r['Location']}  
+🍽 {r['Meals']} meals  
+👤 Volunteer: {r.get('Volunteer_Assigned')}  
+⭐ Rating: {r.get('Rating', 'Not Rated')}
+""")
 
     elif r["Restaurant_Response"] == "Rejected":
-        st.markdown(f"""
-        <div style="
-            background: rgba(244,67,54,0.15);
-            padding:15px;
-            border-left:6px solid #f44336;
-            border-radius:10px;
-            margin-bottom:10px;">
-            
-            <b>❌ Request Rejected</b><br>
-            📍 {r['Location']}<br>
-            🍽 Meals: {r['Meals']}
-        </div>
-        """, unsafe_allow_html=True)
+        st.error(f"❌ Rejected - {r['Location']}")
 
     elif r["Restaurant_Response"] == "Accepted":
-        st.markdown(f"""
-        <div style="
-            background: rgba(33,150,243,0.15);
-            padding:15px;
-            border-left:6px solid #2196F3;
-            border-radius:10px;
-            margin-bottom:10px;">
-            
-            <b>🚚 In Progress</b><br>
-            📍 {r['Location']}<br>
-            🍽 Meals: {r['Meals']}
-        </div>
-        """, unsafe_allow_html=True)
+        st.info(f"🚚 In Progress - {r['Location']} | 🏨 {r.get('Restaurant_Name')}")
 
     else:
-        st.markdown(f"""
-        <div style="
-            background: rgba(255,193,7,0.15);
-            padding:15px;
-            border-left:6px solid #FFC107;
-            border-radius:10px;
-            margin-bottom:10px;">
-            
-            <b>⏳ Waiting for Restaurant</b><br>
-            📍 {r['Location']}<br>
-            🍽 Meals: {r['Meals']}
-        </div>
-        """, unsafe_allow_html=True)
+        st.warning(f"⏳ Waiting - {r['Location']}")

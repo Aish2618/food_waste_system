@@ -1,159 +1,209 @@
-# ------------------ VOLUNTEER SECTION ------------------
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from datetime import datetime
+from utils.data_manager import get_notifications
+import pydeck as pdk
+import urllib.parse
 
-st.set_page_config(page_title="Volunteer Management", layout="wide")
+st.set_page_config(page_title="Volunteer", layout="wide")
 
-# ================= SESSION =================
-if "volunteers" not in st.session_state:
-    st.session_state.volunteers = []
-
-# 👉 IMPORTANT (for emergency flow)
+# ---------------- SESSION ----------------
 if "requests" not in st.session_state:
     st.session_state.requests = []
 
-if "volunteer_notifications" not in st.session_state:
-    st.session_state.volunteer_notifications = []
+if "volunteers" not in st.session_state:
+    st.session_state.volunteers = []
 
-# ================= NAVBAR =================
-st.markdown(f"""
-<style>
-.navbar {{
-    position: sticky;
-    top: 0;
-    z-index: 999;
-    display: flex;
-    justify-content: space-between;
-    padding: 12px 25px;
-    background: rgba(0,0,0,0.7);
-    border-radius: 10px;
-    margin-bottom: 20px;
-}}
-.nav-left {{
-    font-size: 22px;
-    font-weight: bold;
-    color: #4CAF50;
-}}
-.nav-right {{
-    font-size: 14px;
-    color: white;
-}}
-</style>
+# =========================================================
+# 🔐 FIXED SECURITY (ROLE ISSUE SOLVED)
+# =========================================================
+role = st.session_state.get("role")
 
-<div class="navbar">
-    <div class="nav-left">🍱 Smart Food Rescue</div>
-    <div class="nav-right">
-        👤 {st.session_state.get('user')} | {st.session_state.get('role')}
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown(f"### 👋 Welcome, {st.session_state.get('user')}!")
-
-# ================= LOGOUT =================
-col1, col2, col3 = st.columns([8,1,1])
-with col3:
-    if st.button("🚪 Logout", key="logout_vol"):
-        st.session_state.user = None
-        st.session_state.role = None
-        st.switch_page("app.py")
-
-# ================= SECURITY =================
-if st.session_state.get("role") != "Volunteer":
-    st.error("❌ Only Volunteer can access this page")
+if not role:
+    st.warning("⚠️ Please login first")
     st.stop()
 
-# ================= TITLE =================
-st.markdown('<div class="title">🤝 Volunteer Management System</div>', unsafe_allow_html=True)
+if role.strip().lower() != "volunteer":
+    st.error(f"❌ Access denied for role: {role}")
+    st.stop()
 
-# ================= 🔔 NOTIFICATIONS =================
+# ---------------- HEADER ----------------
+st.title("🤝 Volunteer Dashboard")
+
+# ---------------- LOGOUT ----------------
+col1, col2 = st.columns([8,1])
+with col2:
+    if st.button("🚪 Logout"):
+        st.session_state.clear()
+        st.switch_page("app.py")
+
+# =========================================================
+# 📝 VOLUNTEER REGISTRATION
+# =========================================================
+st.subheader("📝 Register as Volunteer")
+
+with st.form("volunteer_form"):
+    name = st.text_input("👤 Name")
+    phone = st.text_input("📞 Phone")
+    area = st.text_input("📍 Area")
+
+    submit = st.form_submit_button("Register")
+
+if submit:
+    if name and phone and area:
+        st.session_state.volunteers.append({
+            "Name": name,
+            "Phone": phone,
+            "Area": area,
+            "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+
+        st.session_state.user = name
+        st.session_state.role = "Volunteer"   # ✅ ENSURE ROLE SET CORRECTLY
+        st.success("✅ Registered successfully!")
+    else:
+        st.error("⚠️ Please fill all fields")
+
+# =========================================================
+# 📍 LIVE LOCATION
+# =========================================================
+st.subheader("📍 Your Live Location")
+
+components.html("""
+<!DOCTYPE html>
+<html>
+<body>
+<p id="location">Fetching location...</p>
+
+<script>
+navigator.geolocation.getCurrentPosition(
+    function(position) {
+        document.getElementById("location").innerHTML =
+        "Latitude: " + position.coords.latitude + 
+        "<br>Longitude: " + position.coords.longitude;
+    },
+    function(error) {
+        document.getElementById("location").innerHTML =
+        "Location access denied.";
+    }
+);
+</script>
+</body>
+</html>
+""", height=150)
+
+# =========================================================
+# 🗺 MAP
+# =========================================================
+st.subheader("🗺 Live Delivery Map")
+
+map_data = pd.DataFrame({
+    "lat": [13.0827],
+    "lon": [80.2707]
+})
+
+layer = pdk.Layer(
+    "ScatterplotLayer",
+    data=map_data,
+    get_position='[lon, lat]',
+    get_color=[0, 200, 0],
+    get_radius=200,
+)
+
+view_state = pdk.ViewState(
+    latitude=13.0827,
+    longitude=80.2707,
+    zoom=11
+)
+
+st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state))
+
+# =========================================================
+# 🔔 NOTIFICATIONS (FIXED MAP LINK)
+# =========================================================
 st.subheader("🔔 Pickup Notifications")
 
-if st.session_state.volunteer_notifications:
-    for n in st.session_state.volunteer_notifications:
+notes = []
+
+try:
+    external_notes = get_notifications("volunteer") or []
+    notes.extend(external_notes)
+except:
+    pass
+
+for r in st.session_state.requests:
+    if r.get("Restaurant_Response") == "Accepted" and r.get("Delivered") == "No":
+        notes.append({
+            "restaurant": r.get("Restaurant_Name", "Unknown Restaurant"),
+            "location": r.get("Location"),
+            "meals": r.get("Meals", 0)
+        })
+
+if notes:
+    for n in reversed(notes):
+
+        restaurant = n.get("restaurant", "Food Ready")
+        location = n.get("location")
+        meals = n.get("meals", 0)
+
+        if location and str(location).strip():
+            encoded_location = urllib.parse.quote(str(location))
+            google_map_url = f"https://www.google.com/maps/search/?api=1&query={encoded_location}"
+            map_link = f"🔗 [Open Live Map]({google_map_url})"
+        else:
+            map_link = "⚠️ Location not available"
+
         st.info(f"""
-        🍱 Food Ready from {n['Hotel']}  
-        📍 Location: {n['Location']}  
-        🍽 Meals: {n['Meals']}
+🍱 {restaurant}  
+📍 Location: {location if location else 'Not provided'}  
+🍽 Meals: {meals}  
+{map_link}
         """)
+
 else:
     st.info("No pickup notifications yet")
 
-# ================= 🚚 DELIVERY =================
+# =========================================================
+# 🚚 DELIVERY TASKS
+# =========================================================
 st.subheader("🚚 Delivery Tasks")
+
+task_found = False
 
 for i, r in enumerate(st.session_state.requests):
 
     if r.get("Restaurant_Response") == "Accepted" and r.get("Delivered") == "No":
 
+        task_found = True
+
         st.write(f"""
-        📍 {r['Location']}  
-        🍽 Meals: {r['Meals']}  
-        🏨 Restaurant: {r['Restaurant_Name']}  
+        📍 Location: {r.get('Location')}  
+        🍽 Meals: {r.get('Meals')}  
+        🏨 Restaurant: {r.get('Restaurant_Name')}
         """)
 
-        if st.button(f"🚚 Deliver {i}"):
+        if st.button(f"🚚 Deliver Order {i}"):
+
             st.session_state.requests[i]["Delivered"] = "Yes"
             st.session_state.requests[i]["Status"] = "Completed"
+            st.session_state.requests[i]["Volunteer_Name"] = st.session_state.get("user")
+
             st.success("✅ Delivered successfully!")
             st.rerun()
 
-# ================= FORM =================
-st.subheader("📝 Register as Volunteer")
+if not task_found:
+    st.info("No delivery tasks available")
 
-with st.form("volunteer_form"):
-    col1, col2 = st.columns(2)
+# =========================================================
+# 📦 COMPLETED DELIVERIES
+# =========================================================
+st.subheader("📦 Completed Deliveries")
 
-    with col1:
-        name = st.text_input("👤 Name")
-        phone = st.text_input("📞 Phone")
-
-    with col2:
-        area = st.text_input("📍 Area / Location")
-        role = st.selectbox("🎯 Role", ["Pickup", "Delivery", "Coordinator"])
-
-    availability = st.selectbox("⏰ Availability", ["Full-Time", "Part-Time"])
-
-    submit = st.form_submit_button("🚀 Register")
-
-# ================= SAVE =================
-if submit:
-    st.session_state.volunteers.append({
-        "Name": name,
-        "Phone": phone,
-        "Area": area,
-        "Role": role,
-        "Availability": availability,
-        "Status": "Active",
-        "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    })
-
-    st.success("✅ Volunteer Registered Successfully!")
-
-# ================= LIST =================
-st.subheader("📋 Volunteer List")
-
-if st.session_state.volunteers:
-    df = pd.DataFrame(st.session_state.volunteers)
-
-    for i, row in df.iterrows():
-        st.write(f"""
-        👤 {row['Name']} | 📞 {row['Phone']}  
-        📍 {row['Area']}  
-        🎯 {row['Role']}  
-        ⏰ {row['Availability']}  
+for r in st.session_state.requests:
+    if r.get("Delivered") == "Yes":
+        st.success(f"""
+        ✅ Delivered by: {r.get('Volunteer_Name', 'Unknown')}  
+        📍 {r.get('Location')}  
+        🍽 {r.get('Meals')} meals
         """)
-
-        col1, col2 = st.columns(2)
-
-        if col1.button(f"❌ Deactivate {i}"):
-            st.session_state.volunteers[i]["Status"] = "Inactive"
-            st.rerun()
-
-        if col2.button(f"🗑 Remove {i}"):
-            st.session_state.volunteers.pop(i)
-            st.rerun()
-
-else:
-    st.info("No volunteers registered yet.")

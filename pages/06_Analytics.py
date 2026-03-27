@@ -4,18 +4,18 @@ import pandas as pd
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Analytics", layout="wide")
 
-# ---------------- THEME (WHITE + BLACK TEXT + BLOCK HEADINGS) ----------------
+# ---------------- THEME (ONLY BACKGROUND CHANGED) ----------------
 st.markdown("""
 <style>
 
 /* Background */
 .stApp {
-    background-color: #ffffff;
+    background-color: #000000;
 }
 
 /* TEXT */
 h1, h2, h3, h4, p, label {
-    color: #000000 !important;
+    color: #ffffff !important;
 }
 
 /* HEADINGS IN BLOCK LETTERS */
@@ -41,7 +41,7 @@ h1, h2, h3, h4 {
 
 /* SUBHEADERS */
 .css-10trblm {
-    color: #000000 !important;
+    color: #ffffff !important;
     font-weight: 900;
     text-transform: uppercase;
 }

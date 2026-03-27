@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.data_manager import get_notifications   # ✅ ADDED
 
 # ---------------- CSS (FINAL POLISH) ----------------
 st.markdown("""
@@ -170,16 +171,16 @@ with m3:
 # ---------------- NOTIFICATIONS ----------------
 st.markdown('<div class="section-title">🔔 Notifications</div>', unsafe_allow_html=True)
 
-notes = [
-    n for n in st.session_state.get("notifications", [])
-    if n.get("user") == st.session_state.get("user")   # ✅ FIXED
-]
+# ✅ NEW LOGIC (CONNECTED TO DATA MANAGER)
+user_role = st.session_state.get("role", "")
+
+notes = get_notifications(user_role)
 
 if not notes:
     st.info("No updates yet")
 else:
     for n in reversed(notes):
-        st.markdown(f'<div class="notify">{n["msg"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="notify">{n["message"]}</div>', unsafe_allow_html=True)
 
 # ---------------- FOOTER ----------------
 st.markdown("""

@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.data_manager import add_notification   # ✅ ADDED
 
 st.set_page_config(layout="wide")
 
@@ -92,7 +93,7 @@ for i, d in enumerate(st.session_state.donations):
             st.session_state.donations[i]["Status"] = "Completed"
             st.rerun()
 
-# ================= MAP FUNCTION (REAL LOCATION) =================
+# ================= MAP FUNCTION =================
 def show_map(location_text):
     maps_url = f"https://www.google.com/maps/search/?api=1&query={location_text}"
 
@@ -130,6 +131,12 @@ if submit:
         "Delivered": "No"
     })
 
+    # ✅ NOTIFICATION ADDED
+    add_notification(
+        f"🚨 Emergency Request: {meals} meals needed at {location}",
+        "restaurant"
+    )
+
     st.success("✅ Sent to Restaurant!")
 
 # ================= TRACK =================
@@ -145,7 +152,6 @@ for r in st.session_state.requests:
     🚚 Delivered: {r['Delivered']}  
     """)
 
-    # ✅ REAL MAP BUTTON
     show_map(r['Location'])
 
 # ================= SUMMARY =================

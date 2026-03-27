@@ -1,13 +1,6 @@
 import streamlit as st
 
 # ================= SIDEBAR =================
-st.sidebar.success(f"👤 {st.session_state.get('user')}")
-st.sidebar.write(f"Role: {st.session_state.get('role')}")
-
-if st.sidebar.button("Logout", key="logout_leaderboard"):
-    st.session_state.user = None
-    st.session_state.role = None
-    st.rerun()
 
 # ================= UI =================
 st.markdown("""

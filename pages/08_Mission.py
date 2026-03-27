@@ -2,32 +2,32 @@ import streamlit as st
 
 st.set_page_config(page_title="Mission", layout="wide")
 
-# ---------------- THEME (PURE WHITE) ----------------
+# ---------------- THEME (ONLY BACKGROUND CHANGED) ----------------
 st.markdown("""
 <style>
 .stApp {
-    background-color: #ffffff;
-    color: #000000;
+    background-color: #000000;
+    color: #ffffff;
 }
 
 /* MAIN TITLE */
 h1 {
     font-weight: 900;
-    color: #000000;
+    color: #ffffff;
     text-align: center;
 }
 
 /* SECTION HEADINGS */
 h2, h3 {
     font-weight: 800;
-    color: #000000;
+    color: #ffffff;
 }
 
 /* Highlight box */
 .highlight {
-    background: #f9f9f9;
+    background: #1e1e1e;
     padding: 15px;
-    border-left: 6px solid #000000;
+    border-left: 6px solid #ffffff;
     border-radius: 10px;
     margin-top: 10px;
     font-size: 16px;
@@ -53,7 +53,7 @@ st.subheader("🌍 Our Mission")
 show_image("https://images.unsplash.com/photo-1606787366850-de6330128bfc")
 
 st.write("""
-Our mission is to reduce food wastage and ensure that surplus food reaches those in need 
+Our mission is to reduce food wastage and ensure that surplus food reaches those in need
 quickly and efficiently. We connect donors, NGOs, and volunteers through a smart platform.
 """)
 
@@ -68,7 +68,7 @@ st.subheader("🔭 Our Vision")
 show_image("https://images.unsplash.com/photo-1509099836639-18ba1795216d")
 
 st.write("""
-We envision a world where no food is wasted and no one goes hungry. 
+We envision a world where no food is wasted and no one goes hungry.
 We aim to build a sustainable system where sharing food becomes a habit.
 """)
 
@@ -117,7 +117,7 @@ st.subheader("❗ Why This Matters")
 show_image("https://images.unsplash.com/photo-1488521787991-ed7bbaae773c")
 
 st.write("""
-Millions face hunger while food is wasted daily. This platform helps balance that gap 
+Millions face hunger while food is wasted daily. This platform helps balance that gap
 by redistributing food effectively.
 """)
 

@@ -6,31 +6,32 @@ st.set_page_config(page_title="Contact Us", layout="wide")
 st.markdown("""
 <style>
 .stApp {
-    background-color: #ffffff;
-    color: #000000;
+    background-color: #000000;
+    color: #ffffff;
 }
 
 /* TITLE */
 h1 {
     font-weight: 900;
-    color: #000000;
+    color: #ffffff;
     text-align: center;
 }
 
 /* HEADINGS */
 h2, h3 {
     font-weight: 800;
-    color: #000000;
+    color: #ffffff;
 }
 
 /* CARD STYLE */
 .card {
-    background: #f9f9f9;
+    background: #1e1e1e;
     padding: 20px;
     border-radius: 15px;
-    border-left: 6px solid black;
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+    border-left: 6px solid #ffffff;
+    box-shadow: 2px 2px 10px rgba(255,255,255,0.1);
     margin-top: 10px;
+    color: white;
 }
 
 /* IMAGE */
@@ -102,7 +103,7 @@ with col2:
 
 # ---------------- FOOTER ----------------
 st.markdown("""
-<div style="text-align:center; margin-top:40px; font-size:18px;">
+<div style="text-align:center; margin-top:40px; font-size:18px; color:white;">
 "Together we can reduce food waste and fight hunger."
 </div>
 """, unsafe_allow_html=True)
